@@ -1,4 +1,5 @@
 // https://codeforces.com/gym/104921/problem/A
+// 45:20 Solve
 
 #include <stdio.h>
 
