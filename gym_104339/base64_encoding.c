@@ -1,63 +1,79 @@
-// https://codeforces.com/gym/104339/problem/D
-// 45:05 Solve
+// https://codeforces.com/gym/104339/problem/E
+// Failed Solve, couldnt get it <1000ms, used Claude
+
 
 #include <stdio.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
-int hex_to_bin(const char *hex) {
-  int num;
-  sscanf(hex, "%x", &num); 
-  return num & 0xFF;      
+const char base64_chars[] = 
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+unsigned char hex_to_byte(const char* hex) {
+  unsigned char result = 0;
+  for (int i = 0; i < 2; i++) {
+    result <<= 4;
+    char c = hex[i];
+    if (c >= '0' && c <= '9')
+      result |= (c - '0');
+    else if (c >= 'A' && c <= 'F')
+      result |= (c - 'A' + 10);
+    else if (c >= 'a' && c <= 'f')
+      result |= (c - 'a' + 10);
+  }
+  return result;
 }
 
 int main() {
-  char map[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"; // Base64 alphabet
   int k;
   scanf("%d", &k);
 
-  char concatenated_binary[1000] = "";
+  unsigned char* input = malloc(k);
+  char* output = malloc(((k + 2) / 3) * 4 + 1);
+  int out_idx = 0;
+
   for (int i = 0; i < k; i++) {
-    char n[3] = {};
-    scanf(" %2s", n);
-  
-    int bin_result = hex_to_bin(n);
-    char bin_str[9];  
-  
-    for (int i = 7; i >= 0; i--) {
-      bin_str[i] = (bin_result & 1) ? '1' : '0';
-      bin_result >>= 1;
+    char hex[3];
+    scanf(" %2s", hex);
+    input[i] = hex_to_byte(hex);
+  }
+
+  for (int in_idx = 0; in_idx < k; ) {
+    unsigned int triple = 0;
+    int remaining = k - in_idx;
+
+    if (remaining >= 3) {
+      triple = (input[in_idx] << 16) | 
+               (input[in_idx + 1] << 8) | 
+               input[in_idx + 2];
+      output[out_idx++] = base64_chars[(triple >> 18) & 0x3F];
+      output[out_idx++] = base64_chars[(triple >> 12) & 0x3F];
+      output[out_idx++] = base64_chars[(triple >> 6) & 0x3F];
+      output[out_idx++] = base64_chars[triple & 0x3F];
+      in_idx += 3;
+    } else {
+      triple = input[in_idx] << 16;
+      
+      if (remaining > 1)
+        triple |= (input[in_idx + 1] << 8);
+      
+      output[out_idx++] = base64_chars[(triple >> 18) & 0x3F];
+      output[out_idx++] = base64_chars[(triple >> 12) & 0x3F];
+      
+      if (remaining > 1)
+        output[out_idx++] = base64_chars[(triple >> 6) & 0x3F];
+      else
+        output[out_idx++] = '=';
+      
+      output[out_idx++] = '=';
+      break;
     }
-    bin_str[8] = '\0';
-    
-    int len = strlen(bin_str);
-    strcat(concatenated_binary, bin_str);
   }
+
+  output[out_idx] = '\0';
+  printf("%s\n", output);
   
-  int bin_len = strlen(concatenated_binary);
-
-  while (bin_len % 6 != 0) {
-    strcat(concatenated_binary, "0");
-    bin_len++;
-  }
-
-  int remainder = bin_len % 6;
-
-  char base64_output[200] = ""; 
-  for (int i = 0; i < bin_len; i += 6) {
-    char chunk[7] = {0};
-    strncpy(chunk, concatenated_binary + i, 6);
-    int index = strtol(chunk, NULL, 2);
-    strncat(base64_output, &map[index], 1);
-  }
-
-  int base64_len = strlen(base64_output);
-  while (base64_len % 4 != 0) {
-    strcat(base64_output, "=");
-    base64_len++;
-  }
-
-  printf("%s\n", base64_output);
+  free(input);
+  free(output);
   return 0;
 }
